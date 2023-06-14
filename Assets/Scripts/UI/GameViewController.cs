@@ -25,12 +25,14 @@ namespace UI
         private void Awake()
         {
             GameEventSystem.Instance.OnInitializeUI += OnInitializeUI;
+            GameEventSystem.Instance.InputActionUpdate += UpdateInputActionSprite;
             inputActionButton.onClick.AddListener(() => GameEventSystem.Instance.InputActionChange?.Invoke());
         }
 
         private void OnDisable()
         {
             GameEventSystem.Instance.OnInitializeUI -= OnInitializeUI;
+            GameEventSystem.Instance.InputActionUpdate -= UpdateInputActionSprite;
             inputActionButton.onClick.RemoveAllListeners();
         }
 
@@ -63,7 +65,7 @@ namespace UI
 
         private void OnTileClick(TileState tileState)
         {
-            //Handle click
+            GameEventSystem.Instance.OnTileClick?.Invoke(tileState);
         }
 
         private string GetTileTypeSprite(TileTypes tileType)
@@ -89,7 +91,7 @@ namespace UI
             minesCountDataText.text = minesData;
         }
 
-        private void UpdateActionImage(InputAction inputAction)
+        private void UpdateInputActionSprite(InputAction inputAction)
         {
             inputActionDisplay.sprite = SpriteLoader.GetSprite(GetInputActionSprite(inputAction));
         }

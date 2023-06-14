@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Enums;
 using Models;
 
 namespace Events
@@ -10,8 +11,10 @@ namespace Events
         
         //Sent To UI
         public Action<List<TileState>, int> OnInitializeUI;
-        
+        public Action<InputAction> InputActionUpdate;
+
         //From UI
         public Action InputActionChange;
+        public Action<TileState> OnTileClick;
     }
 }
