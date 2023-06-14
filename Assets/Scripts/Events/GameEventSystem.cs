@@ -9,6 +9,6 @@ namespace Events
         public static GameEventSystem Instance = new();
         
         //Sent To UI
-        public Action<List<GameModels.TileState>, int> OnInitializeUI;
+        public Action<List<TileState>, int> OnInitializeUI;
     }
 }

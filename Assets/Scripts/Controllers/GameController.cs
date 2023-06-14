@@ -10,7 +10,10 @@ namespace Controllers
 
         private void Awake()
         {
-            gameState.Initialize();
+            if (!gameState.isInitialized)
+            {
+                gameState.Initialize();
+            }
         }
 
         private void Start()

@@ -11,34 +11,30 @@ namespace State
         public int totalMinesFlagged;
         public int currentTime;
         public bool isInitialized;
-        public List<GameModels.TileState> GetTileStates { get; private set; }
+        public List<TileState> GetTileStates { get; private set; }
 
         private const int maxRows = 8;
         private const int maxColumns = 8;
         
         public void Initialize()
         {
-            if (isInitialized)
-            {
-                return;
-            }
-
             currentTime = 0;
             totalMinesFlagged = 0;
             LoadTileStates();
+            isInitialized = true;
         }
 
         private void LoadTileStates()
         {
-            GetTileStates = new List<GameModels.TileState>();
+            GetTileStates = new List<TileState>();
             for (int i = 0; i < maxRows; i++)
             {
                 int rowPos = i;
                 for (int j = 0; j < maxColumns; j++)
                 {
-                    var tileState = new GameModels.TileState()
+                    var tileState = new TileState()
                     {
-                        tilePosition = new GameModels.TilePosition()
+                        tilePosition = new TilePosition()
                         {
                             row = rowPos,
                             column = j,
@@ -47,8 +43,6 @@ namespace State
                     GetTileStates.Add(tileState);
                 }
             }
-
-            isInitialized = true;
         }
     }
 }

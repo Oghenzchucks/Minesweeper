@@ -1,10 +1,7 @@
 namespace Enums
 {
-    public class GameEnums 
+    public enum TileTypes
     {
-        public enum TileTypes
-        {
-            Empty, Mine 
-        }
+        Empty, Mine 
     }
 }
