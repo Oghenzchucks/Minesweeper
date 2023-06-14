@@ -12,8 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e444f6c45c7964d34801cfa6e33106ae, type: 3}
   m_Name: GameState
   m_EditorClassIdentifier: 
-  currentTime: 0
   totalMines: 10
   totalMinesFlagged: 0
-  maxRows: 8
-  maxColumns: 8
+  currentTime: 0
+  isInitialized: 1

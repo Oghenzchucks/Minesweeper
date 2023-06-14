@@ -583,6 +583,7 @@ MonoBehaviour:
   timerText: {fileID: 775746663}
   minesDataText: {fileID: 1485909365}
   showTileViewsPosition: 1
+  showMines: 0
 --- !u!4 &573948905
 Transform:
   m_ObjectHideFlags: 0

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Enums;
 using Events;
 using Models;
 using TMPro;
@@ -13,6 +15,7 @@ namespace UI
         [SerializeField] private TextMeshProUGUI timerText;
         [SerializeField] private TextMeshProUGUI minesDataText;
         [SerializeField] private bool showTileViewsPosition;
+        [SerializeField] private bool showMines;
 
         private List<TileView> _tileViews = new List<TileView>();
 
@@ -38,6 +41,10 @@ namespace UI
             {
                 var tileView = CreateTileView(tileState);
                 tileView.OnClick += OnTileClick;
+                if (showMines)
+                {
+                    tileView.UpdateSprite(GetTileTypeSprite(tileState.tileType));
+                }
                 _tileViews.Add(tileView);
             }
         }
@@ -52,6 +59,19 @@ namespace UI
         private void OnTileClick(TileState tileState)
         {
             //Handle click
+        }
+
+        private string GetTileTypeSprite(TileTypes tileType)
+        {
+            switch (tileType)
+            {
+                case TileTypes.Empty:
+                    return "empty";
+                case TileTypes.Mine:
+                    return "mine";
+            }
+            
+            return "empty";
         }
 
         private void UpdateTimer(int time)
