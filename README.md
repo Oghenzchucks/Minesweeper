@@ -1,0 +1,2 @@
+# Minesweeper
+Avoid the mines
