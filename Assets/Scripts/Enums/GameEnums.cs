@@ -4,4 +4,10 @@ namespace Enums
     {
         Empty, Mine 
     }
+
+    public enum InputAction
+    {
+        FindMine,
+        MarkMine
+    }
 }

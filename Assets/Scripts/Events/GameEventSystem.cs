@@ -10,5 +10,8 @@ namespace Events
         
         //Sent To UI
         public Action<List<TileState>, int> OnInitializeUI;
+        
+        //From UI
+        public Action InputActionChange;
     }
 }

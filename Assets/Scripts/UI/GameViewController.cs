@@ -1,10 +1,11 @@
-using System;
 using System.Collections.Generic;
 using Enums;
 using Events;
 using Models;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using Utils;
 
 namespace UI
 {
@@ -13,25 +14,29 @@ namespace UI
         [SerializeField] private TileView tileViewPrefab;
         [SerializeField] private Transform tileViewParent;
         [SerializeField] private TextMeshProUGUI timerText;
-        [SerializeField] private TextMeshProUGUI minesDataText;
+        [SerializeField] private TextMeshProUGUI minesCountDataText;
+        [SerializeField] private Image inputActionDisplay;
+        [SerializeField] private Button inputActionButton;
         [SerializeField] private bool showTileViewsPosition;
-        [SerializeField] private bool showMines;
+        [SerializeField] private bool showTiles;
 
         private List<TileView> _tileViews = new List<TileView>();
 
         private void Awake()
         {
             GameEventSystem.Instance.OnInitializeUI += OnInitializeUI;
+            inputActionButton.onClick.AddListener(() => GameEventSystem.Instance.InputActionChange?.Invoke());
         }
 
         private void OnDisable()
         {
             GameEventSystem.Instance.OnInitializeUI -= OnInitializeUI;
+            inputActionButton.onClick.RemoveAllListeners();
         }
 
         private void OnInitializeUI(List<TileState> tileStates, int totalCount)
         {
-            minesDataText.text = "0 / " + totalCount;
+            minesCountDataText.text = "0 / " + totalCount;
             LoadTileViews(tileStates);
         }
 
@@ -41,7 +46,7 @@ namespace UI
             {
                 var tileView = CreateTileView(tileState);
                 tileView.OnClick += OnTileClick;
-                if (showMines)
+                if (showTiles)
                 {
                     tileView.UpdateSprite(GetTileTypeSprite(tileState.tileType));
                 }
@@ -71,7 +76,7 @@ namespace UI
                     return "mine";
             }
             
-            return "empty";
+            return "";
         }
 
         private void UpdateTimer(int time)
@@ -79,9 +84,27 @@ namespace UI
             timerText.text = time.ToString();
         }
 
-        private void UpdateMinesData(string minesData)
+        private void UpdateMinesCountData(string minesData)
         {
-            minesDataText.text = minesData;
+            minesCountDataText.text = minesData;
+        }
+
+        private void UpdateActionImage(InputAction inputAction)
+        {
+            inputActionDisplay.sprite = SpriteLoader.GetSprite(GetInputActionSprite(inputAction));
+        }
+        
+        private string GetInputActionSprite(InputAction inputAction)
+        {
+            switch (inputAction)
+            {
+                case InputAction.FindMine:
+                    return "mine";
+                case InputAction.MarkMine:
+                    return "flag";
+            }
+            
+            return "";
         }
     }
 }
