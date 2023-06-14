@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GameState
   m_EditorClassIdentifier: 
   currentTime: 0
-  totalMines: 0
+  totalMines: 10
   totalMinesFlagged: 0
   maxRows: 8
   maxColumns: 8

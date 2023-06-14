@@ -7,15 +7,24 @@ namespace State
     [CreateAssetMenu(fileName = nameof(GameState), menuName = "State/Game")]
     public class GameState : ScriptableObject
     {
-        public int currentTime;
         public int totalMines;
         public int totalMinesFlagged;
-        public int maxRows = 8;
-        public int maxColumns = 8;
+        public int currentTime;
+        public bool isInitialized;
         public List<GameModels.TileState> GetTileStates { get; private set; }
 
+        private const int maxRows = 8;
+        private const int maxColumns = 8;
+        
         public void Initialize()
         {
+            if (isInitialized)
+            {
+                return;
+            }
+
+            currentTime = 0;
+            totalMinesFlagged = 0;
             LoadTileStates();
         }
 
@@ -38,6 +47,8 @@ namespace State
                     GetTileStates.Add(tileState);
                 }
             }
+
+            isInitialized = true;
         }
     }
 }
