@@ -13,16 +13,17 @@ namespace State
         public int totalMinesFlagged;
         public int currentTime;
         public List<TileState> GetTileStates { get; private set; }
+        public bool IsMatched => totalMines == totalMinesFlagged;
 
         public const int MaxRows = 8;
         public const int MaxColumns = 8;
         
-        public void Initialize()
+        public void Initialize(MinesData minesData)
         {
             currentTime = 0;
             totalMinesFlagged = 0;
             LoadTileStates();
-            GenerateMinePlacements();
+            GenerateMinePlacements(minesData);
         }
 
         private void LoadTileStates()
@@ -46,12 +47,20 @@ namespace State
             }
         }
 
-        private void GenerateMinePlacements()
+        private void GenerateMinePlacements(MinesData minesData)
         {
-            var tilePositions = GetTileStates.Select(x => x.tilePosition).ToList();
-            RemoveCorners(ref tilePositions);
-            RemoveCenter(ref tilePositions);
-            AddMinesToTileState(SelectMinesPosition(tilePositions));
+            if (minesData == null)
+            {
+                var tilePositions = GetTileStates.Select(x => x.tilePosition).ToList();
+                RemoveCorners(ref tilePositions);
+                RemoveCenter(ref tilePositions);
+                AddMinesToTileState(SelectMinesPosition(tilePositions));
+            }
+            else
+            {
+                totalMines = minesData.minesPosition.Count;
+                AddMinesToTileState(minesData.minesPosition);
+            }
         }
 
         private void RemoveCorners(ref List<TilePosition> tilePositions)
@@ -87,6 +96,22 @@ namespace State
             {
                 GetTileStates.First(x => x.tilePosition.IsEqual(minePosition)).tileType = TileTypes.Mine;
             }
+        }
+
+        public bool IsGameFinished()
+        {
+            var mines = GetTileStates.FindAll(x => x.tileType == TileTypes.Mine);
+            var markedMines = GetTileStates.FindAll(x => x.isFlagged);
+            var matchCount = 0;
+
+            foreach (var mine in mines)
+            {
+                if (markedMines.Exists(x => x.tilePosition.IsEqual(mine.tilePosition)))
+                {
+                    matchCount++;
+                }
+            }
+            return matchCount == mines.Count;
         }
     }
 }

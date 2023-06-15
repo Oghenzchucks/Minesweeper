@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Enums;
 
 namespace Models
@@ -22,5 +23,11 @@ namespace Models
         public TileTypes tileType;
         public bool isFlagged;
         public bool isOpen;
+    }
+    
+    [Serializable]
+    public class MinesData
+    {
+        public List<TilePosition> minesPosition;
     }
 }

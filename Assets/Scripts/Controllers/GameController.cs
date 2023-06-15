@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Config;
 using Enums;
 using Events;
 using Models;
@@ -12,44 +13,58 @@ namespace Controllers
     {
         [SerializeField] private GameState gameState;
         [SerializeField] private int countDownRate;
-        
+
+        private ConfigService _configService;
         private InputController _inputController;
         private TileStateSetter _tileStateSetter;
         private TileStatesActivator _tileStatesActivator;
         
-        private bool _gameOver;
+        private bool _gameOver, _isShowingWarning;
         private Coroutine _countDownCoroutine;
 
         private void Awake()
         {
-            gameState.Initialize();
-            
+            _configService = new ConfigService();
             _inputController = new InputController();
-            
             _tileStateSetter = new TileStateSetter();
-            _tileStateSetter.SetTileStatesType(gameState);
 
             _tileStatesActivator = new TileStatesActivator();
-            _tileStatesActivator.Initialize(gameState);
             _tileStatesActivator.OnOpenTileStates += OnOpenTileStates;
 
+            GameEventSystem.Instance.StartGame += StartGame;
+            GameEventSystem.Instance.ExitGame += OnExit;
+            
             GameEventSystem.Instance.InputActionChange += OnInputActionChange;
             GameEventSystem.Instance.OnTileClick += OnTileClick;
         }
 
-        private void Start()
+        private void OnDestroy()
         {
+            GameEventSystem.Instance.StartGame -= StartGame;
+            GameEventSystem.Instance.ExitGame -= OnExit;
+            
+            _tileStatesActivator.OnOpenTileStates -= OnOpenTileStates;
+            GameEventSystem.Instance.InputActionChange -= OnInputActionChange;
+            GameEventSystem.Instance.OnTileClick -= OnTileClick;
+        }
+
+        private void StartGame()
+        {
+            StopCountDown();
+            
+            gameState.Initialize(_configService.LoadFromJson());
+            _tileStateSetter.SetTileStatesType(gameState);
+            _tileStatesActivator.Initialize(gameState);
+
             _inputController.handleInput = true;
             GameEventSystem.Instance.OnInitializeUI?.Invoke(gameState.GetTileStates, gameState.totalMines);
             GameEventSystem.Instance.OnTimeCountUpdate?.Invoke(gameState.currentTime);
             _countDownCoroutine = StartCoroutine(CountTime());
         }
 
-        private void OnDisable()
+        private void OnExit()
         {
-            _tileStatesActivator.OnOpenTileStates -= OnOpenTileStates;
-            GameEventSystem.Instance.InputActionChange -= OnInputActionChange;
-            GameEventSystem.Instance.OnTileClick -= OnTileClick;
+            StopCountDown();
         }
 
         private void OnInputActionChange()
@@ -57,7 +72,7 @@ namespace Controllers
             _inputController.ChangeInputAction();
             GameEventSystem.Instance.InputActionUpdate?.Invoke(_inputController.GetInputAction);
         }
-        
+
         private void OnTileClick(TileState tileState)
         {
             if (!_inputController.handleInput)
@@ -65,6 +80,7 @@ namespace Controllers
                 return;
             }
 
+            _inputController.handleInput = false;
             switch (_inputController.GetInputAction)
             {
                 case InputAction.FindMine:
@@ -83,7 +99,6 @@ namespace Controllers
                 return;
             }
 
-            _inputController.handleInput = false;
             switch (tileState.tileType)
             {
                 case TileTypes.Empty:
@@ -96,7 +111,8 @@ namespace Controllers
                         tile.isOpen = true;
                     }
                     GameEventSystem.Instance.OpenAllTiles?.Invoke(gameState.GetTileStates);
-                    _inputController.handleInput = true;
+                    StopCountDown();
+                    ShowResult(false);
                     return;
                 default:
                     tileState.isOpen = true;
@@ -114,17 +130,60 @@ namespace Controllers
 
         private void HandleMarkMineAction(TileState tileState)
         {
+            if (_isShowingWarning && !tileState.isFlagged)
+            {
+                return;
+            }
+
+            if (_isShowingWarning)
+            {
+                ShowWarningMessage(false);
+            }
+
+            UpdateMarkedMineCount(tileState);
+            UpdateMineCount();
+            GameEventSystem.Instance.OnMarkMine?.Invoke(tileState);
+
+            EndGameCheck();
+        }
+
+        private void UpdateMarkedMineCount(TileState tileState)
+        {
             tileState.isFlagged = !tileState.isFlagged;
-            if (tileState.isFlagged && gameState.totalMinesFlagged <= gameState.totalMines)
+            if (tileState.isFlagged && gameState.totalMinesFlagged < gameState.totalMines)
             {
                 gameState.totalMinesFlagged++;
             }
-            else if (!tileState.isFlagged && gameState.totalMinesFlagged >= 0)
+            else if (!tileState.isFlagged && gameState.totalMinesFlagged > 0)
             {
                 gameState.totalMinesFlagged--;
             }
-            GameEventSystem.Instance.OnMarkMine?.Invoke(tileState);
-            UpdateMineCount();
+        }
+
+        private void EndGameCheck()
+        {
+            if (gameState.IsMatched)
+            {
+                if (gameState.IsGameFinished())
+                {
+                    ShowResult(true);
+                }
+                else
+                {
+                    ShowWarningMessage(true);
+                }
+            }
+            else
+            {
+                _inputController.handleInput = true;
+            }
+        }
+
+        private void ShowWarningMessage(bool showWarning)
+        {
+            _inputController.handleInput = true;
+            _isShowingWarning = showWarning;
+            GameEventSystem.Instance.OnWarningAction?.Invoke(showWarning);
         }
 
         private void UpdateMineCount()
@@ -149,6 +208,13 @@ namespace Controllers
             
             StopCoroutine(_countDownCoroutine);
             _countDownCoroutine = null;
+        }
+        
+        private void ShowResult(bool hasPassed)
+        {
+            _gameOver = false;
+            _isShowingWarning = false;
+            GameEventSystem.Instance.OnShowResult?.Invoke(hasPassed);
         }
     }
 }

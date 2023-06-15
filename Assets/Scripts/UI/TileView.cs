@@ -18,12 +18,12 @@ namespace UI
 
         public Action<TileState> OnClick;
 
-        private void Awake()
+        private void OnEnable()
         {
             button.onClick.AddListener(() => OnClick?.Invoke(GetTileState));
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             button.onClick.RemoveAllListeners();
         }

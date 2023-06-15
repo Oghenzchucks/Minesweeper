@@ -12,16 +12,22 @@ namespace UI
 {
     public class GameViewController : MonoBehaviour
     {
+        [SerializeField] private GameObject startScreen, inGameScreen, resultScreen, restartButtonParent;
+        [SerializeField] private TextMeshProUGUI message;
+        [SerializeField] private Button start, restart, exit;
+        
         [SerializeField] private TileView tileViewPrefab;
         [SerializeField] private Transform tileViewParent;
         [SerializeField] private TextMeshProUGUI timerText;
         [SerializeField] private TextMeshProUGUI minesCountDataText;
+        
         [SerializeField] private Image inputActionDisplay;
         [SerializeField] private Button inputActionButton;
+        
         [SerializeField] private bool showTileViewsPosition;
         [SerializeField] private bool showTiles;
 
-        private List<TileView> _tileViews = new List<TileView>();
+        private List<TileView> _tileViews = new();
 
         private void Awake()
         {
@@ -32,10 +38,17 @@ namespace UI
             GameEventSystem.Instance.OnMarkMine += OnMarkMine;
             GameEventSystem.Instance.OnMineCountUpdate += OnMineCountUpdate;
             GameEventSystem.Instance.OnTimeCountUpdate += UpdateTimer;
+            GameEventSystem.Instance.OnShowResult += OnShowResult;
+            GameEventSystem.Instance.OnWarningAction += OnWarningAction;
+            
+            start.onClick.AddListener(OnStart);
+            restart.onClick.AddListener(OnRestart);
+            exit.onClick.AddListener(OnExit);
+            
             inputActionButton.onClick.AddListener(() => GameEventSystem.Instance.InputActionChange?.Invoke());
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             GameEventSystem.Instance.OnInitializeUI -= OnInitializeUI;
             GameEventSystem.Instance.InputActionUpdate -= UpdateInputActionSprite;
@@ -44,7 +57,35 @@ namespace UI
             GameEventSystem.Instance.OnMarkMine -= OnMarkMine;
             GameEventSystem.Instance.OnMineCountUpdate -= OnMineCountUpdate;
             GameEventSystem.Instance.OnTimeCountUpdate -= UpdateTimer;
+            GameEventSystem.Instance.OnShowResult -= OnShowResult;
+            GameEventSystem.Instance.OnWarningAction -= OnWarningAction;
+
+            start.onClick.RemoveAllListeners();
+            restart.onClick.RemoveAllListeners();
+            exit.onClick.RemoveAllListeners();
             inputActionButton.onClick.RemoveAllListeners();
+        }
+
+        private void OnStart()
+        {
+            message.text = "";
+            ActivateScreens(false, true, false);
+            restartButtonParent.SetActive(true);
+            GameEventSystem.Instance.StartGame?.Invoke();
+        }
+
+        private void OnRestart()
+        {
+            message.text = "";
+            restartButtonParent.SetActive(true);
+            ActivateScreens(false, true, false);
+            GameEventSystem.Instance.StartGame?.Invoke();
+        }
+
+        private void OnExit()
+        {
+            ActivateScreens(true, false, false);
+            GameEventSystem.Instance.ExitGame?.Invoke();
         }
 
         private void OnInitializeUI(List<TileState> tileStates, int totalCount)
@@ -55,16 +96,29 @@ namespace UI
 
         private void LoadTileViews(List<TileState> tileStates)
         {
+            DestroyOldTiles();
+            
             foreach (var tileState in tileStates)
             {
                 var tileView = CreateTileView(tileState);
                 tileView.OnClick += OnTileClick;
+                _tileViews.Add(tileView);
+                
                 if (showTiles)
                 {
                     tileView.UpdateSprite(GetTileTypeSprite(tileState.tileType));
                 }
-                _tileViews.Add(tileView);
             }
+        }
+
+        private void DestroyOldTiles()
+        {
+            foreach (var tileView in _tileViews)
+            {
+                tileView.OnClick = null;
+                Destroy(tileView.gameObject);
+            }
+            _tileViews.Clear();
         }
 
         private TileView CreateTileView(TileState tileState)
@@ -160,6 +214,27 @@ namespace UI
             }
             
             return "";
+        }
+        
+        private void OnShowResult(bool hasPassed)
+        {
+            restartButtonParent.SetActive(false);
+            message.text = hasPassed ? "YOU WON" : "YOU LOST";
+            message.color = hasPassed ? Color.green : Color.red;
+            resultScreen.SetActive(true);
+        }
+        
+        private void OnWarningAction(bool showWarning)
+        {
+            message.text = showWarning ? "Keep Trying" : "";
+            message.color = Color.yellow;
+        }
+        
+        private void ActivateScreens(bool showStart, bool showInGame, bool showResult)
+        {
+            startScreen.SetActive(showStart);
+            inGameScreen.SetActive(showInGame);
+            resultScreen.SetActive(showResult);
         }
     }
 }
