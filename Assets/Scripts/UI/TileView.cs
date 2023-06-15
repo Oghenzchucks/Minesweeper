@@ -1,4 +1,5 @@
 using System;
+using Enums;
 using Models;
 using TMPro;
 using UnityEngine;
@@ -30,7 +31,8 @@ namespace UI
         public void UpdateData(TileState tileState, bool showPosition)
         {
             GetTileState = tileState;
-            tilePositionText.text = tileState.tilePosition.row + "-" + tileState.tilePosition.column;
+            string mineWord = tileState.tileType == TileTypes.Mine ? "m" : "";
+            tilePositionText.text = tileState.tilePosition.row + "-" + tileState.tilePosition.column + mineWord;
             tilePositionText.gameObject.SetActive(showPosition);
         }
 

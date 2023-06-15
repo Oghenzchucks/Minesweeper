@@ -12,11 +12,10 @@ namespace State
         public int totalMines;
         public int totalMinesFlagged;
         public int currentTime;
-        public bool isInitialized;
         public List<TileState> GetTileStates { get; private set; }
 
-        private const int maxRows = 8;
-        private const int maxColumns = 8;
+        public const int MaxRows = 8;
+        public const int MaxColumns = 8;
         
         public void Initialize()
         {
@@ -24,16 +23,15 @@ namespace State
             totalMinesFlagged = 0;
             LoadTileStates();
             GenerateMinePlacements();
-            isInitialized = true;
         }
 
         private void LoadTileStates()
         {
             GetTileStates = new List<TileState>();
-            for (int i = 0; i < maxRows; i++)
+            for (int i = 0; i < MaxRows; i++)
             {
                 int rowPos = i;
-                for (int j = 0; j < maxColumns; j++)
+                for (int j = 0; j < MaxColumns; j++)
                 {
                     var tileState = new TileState()
                     {

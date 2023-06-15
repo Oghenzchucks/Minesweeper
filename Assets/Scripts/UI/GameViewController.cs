@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Enums;
 using Events;
 using Models;
@@ -26,6 +27,11 @@ namespace UI
         {
             GameEventSystem.Instance.OnInitializeUI += OnInitializeUI;
             GameEventSystem.Instance.InputActionUpdate += UpdateInputActionSprite;
+            GameEventSystem.Instance.OnTilesToOpen += OnUpdateTileViews;
+            GameEventSystem.Instance.OpenAllTiles += OpenAllTiles;
+            GameEventSystem.Instance.OnMarkMine += OnMarkMine;
+            GameEventSystem.Instance.OnMineCountUpdate += OnMineCountUpdate;
+            GameEventSystem.Instance.OnTimeCountUpdate += UpdateTimer;
             inputActionButton.onClick.AddListener(() => GameEventSystem.Instance.InputActionChange?.Invoke());
         }
 
@@ -33,6 +39,11 @@ namespace UI
         {
             GameEventSystem.Instance.OnInitializeUI -= OnInitializeUI;
             GameEventSystem.Instance.InputActionUpdate -= UpdateInputActionSprite;
+            GameEventSystem.Instance.OnTilesToOpen -= OnUpdateTileViews;
+            GameEventSystem.Instance.OpenAllTiles -= OpenAllTiles;
+            GameEventSystem.Instance.OnMarkMine -= OnMarkMine;
+            GameEventSystem.Instance.OnMineCountUpdate -= OnMineCountUpdate;
+            GameEventSystem.Instance.OnTimeCountUpdate -= UpdateTimer;
             inputActionButton.onClick.RemoveAllListeners();
         }
 
@@ -67,6 +78,30 @@ namespace UI
         {
             GameEventSystem.Instance.OnTileClick?.Invoke(tileState);
         }
+        
+        private void OnMarkMine(TileState tileState)
+        {
+            var tileView = _tileViews.First(x => x.GetTileState.tilePosition.IsEqual(tileState.tilePosition));
+            tileView.UpdateSprite(tileState.isFlagged ? "flag" : "unclicked");
+        }
+
+        private void OnUpdateTileViews(List<TileState> tileStates)
+        {
+            foreach (var tileState in tileStates)
+            {
+                var tileView = _tileViews.First(x => x.GetTileState.tilePosition.IsEqual(tileState.tilePosition));
+                tileView.UpdateSprite(GetTileTypeSprite(tileView.GetTileState.tileType));
+            }
+        }
+        
+        private void OpenAllTiles(List<TileState> tileStates)
+        {
+            foreach (var tileState in tileStates)
+            {
+                var tileView = _tileViews.First(x => x.GetTileState.tilePosition.IsEqual(tileState.tilePosition));
+                tileView.UpdateSprite(tileState.isFlagged && tileState.tileType != TileTypes.Mine ? "wrongmine" : GetTileTypeSprite(tileView.GetTileState.tileType));
+            }
+        }
 
         private string GetTileTypeSprite(TileTypes tileType)
         {
@@ -76,6 +111,24 @@ namespace UI
                     return "empty";
                 case TileTypes.Mine:
                     return "mine";
+                case TileTypes.HitMine:
+                    return "redmine";
+                case TileTypes.One:
+                    return "1";
+                case TileTypes.Two:
+                    return "2";
+                case TileTypes.Three:
+                    return "3";
+                case TileTypes.Four:
+                    return "4";
+                case TileTypes.Five:
+                    return "5";
+                case TileTypes.Six:
+                    return "6";
+                case TileTypes.Seven:
+                    return "7";
+                case TileTypes.Eight:
+                    return "8";
             }
             
             return "";
@@ -86,7 +139,7 @@ namespace UI
             timerText.text = time.ToString();
         }
 
-        private void UpdateMinesCountData(string minesData)
+        private void OnMineCountUpdate(string minesData)
         {
             minesCountDataText.text = minesData;
         }

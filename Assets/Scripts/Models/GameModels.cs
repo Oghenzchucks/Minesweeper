@@ -20,6 +20,7 @@ namespace Models
     {
         public TilePosition tilePosition;
         public TileTypes tileType;
-        public bool flagged;
+        public bool isFlagged;
+        public bool isOpen;
     }
 }

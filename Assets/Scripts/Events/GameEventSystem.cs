@@ -9,11 +9,16 @@ namespace Events
     {
         public static GameEventSystem Instance = new();
         
-        //Sent To UI
+        //From Controller To UI
         public Action<List<TileState>, int> OnInitializeUI;
         public Action<InputAction> InputActionUpdate;
+        public Action<List<TileState>> OnTilesToOpen;
+        public Action<List<TileState>> OpenAllTiles;
+        public Action<TileState> OnMarkMine;
+        public Action<string> OnMineCountUpdate;
+        public Action<int> OnTimeCountUpdate;
 
-        //From UI
+        //From UI to Controller
         public Action InputActionChange;
         public Action<TileState> OnTileClick;
     }

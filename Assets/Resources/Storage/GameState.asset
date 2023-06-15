@@ -15,4 +15,4 @@ MonoBehaviour:
   totalMines: 10
   totalMinesFlagged: 0
   currentTime: 0
-  isInitialized: 1
+  isInitialized: 0
