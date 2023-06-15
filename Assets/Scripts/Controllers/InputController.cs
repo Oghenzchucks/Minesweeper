@@ -1,5 +1,6 @@
 using System;
 using Enums;
+using UnityEngine;
 
 namespace Controllers
 {
@@ -19,6 +20,24 @@ namespace Controllers
                 case InputAction.MarkMine:
                     GetInputAction = InputAction.FindMine;
                     break;
+            }
+        }
+
+        public void OnUpdate()
+        {
+            if (!handleInput)
+            {
+                return;
+            }
+            
+            if (Input.GetMouseButtonDown(0))
+            {
+                GetInputAction = InputAction.FindMine;
+            }
+            
+            if (Input.GetMouseButtonDown(1))
+            {
+                GetInputAction = InputAction.MarkMine;
             }
         }
     }

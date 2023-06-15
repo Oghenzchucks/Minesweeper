@@ -38,6 +38,11 @@ namespace Controllers
             GameEventSystem.Instance.OnTileClick += OnTileClick;
         }
 
+        private void Update()
+        {
+            _inputController.OnUpdate();
+        }
+
         private void OnDestroy()
         {
             GameEventSystem.Instance.StartGame -= StartGame;
