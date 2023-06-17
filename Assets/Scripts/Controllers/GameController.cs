@@ -13,14 +13,17 @@ namespace Controllers
     {
         [SerializeField] private GameState gameState;
         [SerializeField] private int countDownRate;
+        [SerializeField] private bool autoPlay;
+        [SerializeField] private int waitTime;
 
         private ConfigService _configService;
         private InputController _inputController;
         private TileStateSetter _tileStateSetter;
         private TileStatesActivator _tileStatesActivator;
+        private AutoPlayController _autoPlayController;
         
-        private bool _gameOver, _isShowingWarning;
-        private Coroutine _countDownCoroutine;
+        private bool _gameOver, _isShowingWarning, _isWorking;
+        private Coroutine _countDownCoroutine, _autoPlayCoroutine;
 
         private void Awake()
         {
@@ -31,11 +34,13 @@ namespace Controllers
             _tileStatesActivator = new TileStatesActivator();
             _tileStatesActivator.OnOpenTileStates += OnOpenTileStates;
 
+            _autoPlayController = new AutoPlayController();
+
             GameEventSystem.Instance.StartGame += StartGame;
             GameEventSystem.Instance.ExitGame += OnExit;
             
             GameEventSystem.Instance.InputActionChange += OnInputActionChange;
-            GameEventSystem.Instance.OnTileClick += OnTileClick;
+            GameEventSystem.Instance.OnTileClick += OnInputTileClick;
         }
 
         private void Update()
@@ -50,26 +55,59 @@ namespace Controllers
             
             _tileStatesActivator.OnOpenTileStates -= OnOpenTileStates;
             GameEventSystem.Instance.InputActionChange -= OnInputActionChange;
-            GameEventSystem.Instance.OnTileClick -= OnTileClick;
+            GameEventSystem.Instance.OnTileClick -= OnInputTileClick;
         }
 
         private void StartGame()
         {
-            StopCountDown();
+            StopGameCoroutine(_countDownCoroutine);
+            StopGameCoroutine(_autoPlayCoroutine);
             
             gameState.Initialize(_configService.LoadFromJson());
             _tileStateSetter.SetTileStatesType(gameState);
             _tileStatesActivator.Initialize(gameState);
-
-            _inputController.handleInput = true;
+            
             GameEventSystem.Instance.OnInitializeUI?.Invoke(gameState.GetTileStates, gameState.totalMines);
             GameEventSystem.Instance.OnTimeCountUpdate?.Invoke(gameState.currentTime);
             _countDownCoroutine = StartCoroutine(CountTime());
+
+            if (!autoPlay)
+            {
+                _inputController.handleInput = true;
+            }
+            else
+            {
+                StartAIMove();
+            }
         }
 
         private void OnExit()
         {
-            StopCountDown();
+            StopGameCoroutine(_countDownCoroutine);
+            StopGameCoroutine(_autoPlayCoroutine);
+        }
+
+        private void StartAIMove()
+        {
+            var autoPlayData = _autoPlayController.GetAIMove(gameState);
+            if (autoPlayData != null)
+            {
+                _isWorking = true;
+                _inputController.UpdateInputAction(autoPlayData.inputAction);
+                OnTileClick(autoPlayData.tileState);
+                _autoPlayCoroutine = StartCoroutine(PlayAINextMove());
+            }
+            else
+            {
+                Debug.Log("no move");
+            }
+        }
+
+        private IEnumerator PlayAINextMove()
+        {
+            yield return new WaitUntil(() => !_isWorking);
+            yield return new WaitForSeconds(waitTime);
+            StartAIMove();
         }
 
         private void OnInputActionChange()
@@ -78,13 +116,23 @@ namespace Controllers
             GameEventSystem.Instance.InputActionUpdate?.Invoke(_inputController.GetInputAction);
         }
 
-        private void OnTileClick(TileState tileState)
+        private void OnInputTileClick(TileState tileState)
         {
+            if (autoPlay)
+            {
+                return;
+            }
+            
             if (!_inputController.handleInput)
             {
                 return;
             }
 
+            OnTileClick(tileState);
+        }
+        
+        private void OnTileClick(TileState tileState)
+        {
             _inputController.handleInput = false;
             switch (_inputController.GetInputAction)
             {
@@ -116,13 +164,16 @@ namespace Controllers
                         tile.isOpen = true;
                     }
                     GameEventSystem.Instance.OpenAllTiles?.Invoke(gameState.GetTileStates);
-                    StopCountDown();
+                    StopGameCoroutine(_countDownCoroutine);
+                    StopGameCoroutine(_autoPlayCoroutine);
                     ShowResult(false);
+                    _isWorking = false;
                     return;
                 default:
                     tileState.isOpen = true;
                     GameEventSystem.Instance.OnTilesToOpen?.Invoke(new List<TileState>() { tileState });
                     _inputController.handleInput = true;
+                    _isWorking = false;
                     return;
             }
         }
@@ -131,6 +182,7 @@ namespace Controllers
         {
             GameEventSystem.Instance.OnTilesToOpen?.Invoke(tileStates);
             _inputController.handleInput = true;
+            _isWorking = false;
         }
 
         private void HandleMarkMineAction(TileState tileState)
@@ -204,15 +256,14 @@ namespace Controllers
             _countDownCoroutine = !_gameOver ? StartCoroutine(CountTime()) : null;
         }
 
-        private void StopCountDown()
+        private void StopGameCoroutine(Coroutine coroutine)
         {
-            if (_countDownCoroutine == null)
+            if (coroutine == null)
             {
                 return;
             }
             
-            StopCoroutine(_countDownCoroutine);
-            _countDownCoroutine = null;
+            StopCoroutine(coroutine);
         }
         
         private void ShowResult(bool hasPassed)

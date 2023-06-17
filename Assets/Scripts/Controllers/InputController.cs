@@ -22,6 +22,11 @@ namespace Controllers
                     break;
             }
         }
+        
+        public void UpdateInputAction(InputAction inputAction)
+        {
+            GetInputAction = inputAction;
+        }
 
         public void OnUpdate()
         {
@@ -32,12 +37,12 @@ namespace Controllers
             
             if (Input.GetMouseButtonDown(0))
             {
-                GetInputAction = InputAction.FindMine;
+                UpdateInputAction (InputAction.FindMine);
             }
             
             if (Input.GetMouseButtonDown(1))
             {
-                GetInputAction = InputAction.MarkMine;
+                UpdateInputAction (InputAction.MarkMine);
             }
         }
     }

@@ -30,4 +30,11 @@ namespace Models
     {
         public List<TilePosition> minesPosition;
     }
+
+    [Serializable]
+    public class AutoPlayData
+    {
+        public TileState tileState;
+        public InputAction inputAction;
+    }
 }

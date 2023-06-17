@@ -4,6 +4,7 @@ using System.Linq;
 using Enums;
 using Models;
 using State;
+using Utils;
 
 namespace Controllers
 {
@@ -53,38 +54,17 @@ namespace Controllers
         
         private void GetTilesToOpen(TileState tileState)
         {
-            var tilePosition = tileState.tilePosition;
-            
-            int minRow = tilePosition.row - 1;
-            int maxRow = tilePosition.row + 1;
-            int minColumn = tilePosition.column - 1;
-            int maxColumn = tilePosition.column + 1;
-            
-            for (int i = minRow; i <= maxRow; i++)
+            foreach (var aroundTileState in TilesHelper.GetTilesAround(tileState, _gameState))
             {
-                for (int j = minColumn; j <= maxColumn; j++)
+                if (aroundTileState.tileType == TileTypes.Empty && !_clearedTileStates.Contains(aroundTileState))
                 {
-                    var newTilePosition = new TilePosition() { row = i, column = j};
-                    if (IsInRange(newTilePosition))
-                    {
-                        var addedTileState = _gameState.GetTileStates.Find(x => x.tilePosition.IsEqual(newTilePosition));
-                        if (addedTileState.tileType == TileTypes.Empty && !_clearedTileStates.Contains(addedTileState))
-                        {
-                            _checkTileStates.Add(addedTileState);
-                        }
-                        addedTileState.isOpen = true;
-                        _openTileStates.Add(addedTileState);
-                    }
+                    _checkTileStates.Add(aroundTileState);
                 }
+                aroundTileState.isOpen = true;
+                _openTileStates.Add(aroundTileState);
             }
 
             OnFinishedCheck();
-        }
-
-        private bool IsInRange(TilePosition tilePosition)
-        {
-            return tilePosition.row is >= 0 and < GameState.MaxRows &&
-                   tilePosition.column is >= 0 and < GameState.MaxColumns;
         }
     }
 }
