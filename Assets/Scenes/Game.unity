@@ -2906,7 +2906,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gameState: {fileID: 11400000, guid: b23372cb486b94a98bffea4fee4cb240, type: 2}
   countDownRate: 3
-  autoPlay: 1
+  autoPlay: 0
   waitTime: 1
 --- !u!4 &1632763157
 Transform:
