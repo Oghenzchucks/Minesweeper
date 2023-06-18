@@ -33,9 +33,7 @@ namespace Controllers
 
             _tileStatesActivator = new TileStatesActivator();
             _tileStatesActivator.OnOpenTileStates += OnOpenTileStates;
-
-            _autoPlayController = new AutoPlayController();
-
+            
             GameEventSystem.Instance.StartGame += StartGame;
             GameEventSystem.Instance.ExitGame += OnExit;
             
@@ -60,6 +58,7 @@ namespace Controllers
 
         private void StartGame()
         {
+            _gameOver = false;
             StopGameCoroutine(_countDownCoroutine);
             StopGameCoroutine(_autoPlayCoroutine);
             
@@ -67,6 +66,8 @@ namespace Controllers
             _tileStateSetter.SetTileStatesType(gameState);
             _tileStatesActivator.Initialize(gameState);
             
+            _autoPlayController = new AutoPlayController();
+
             GameEventSystem.Instance.OnInitializeUI?.Invoke(gameState.GetTileStates, gameState.totalMines);
             GameEventSystem.Instance.OnTimeCountUpdate?.Invoke(gameState.currentTime);
             _countDownCoroutine = StartCoroutine(CountTime());
@@ -85,29 +86,6 @@ namespace Controllers
         {
             StopGameCoroutine(_countDownCoroutine);
             StopGameCoroutine(_autoPlayCoroutine);
-        }
-
-        private void StartAIMove()
-        {
-            var autoPlayData = _autoPlayController.GetAIMove(gameState);
-            if (autoPlayData != null)
-            {
-                _isWorking = true;
-                _inputController.UpdateInputAction(autoPlayData.inputAction);
-                OnTileClick(autoPlayData.tileState);
-                _autoPlayCoroutine = StartCoroutine(PlayAINextMove());
-            }
-            else
-            {
-                Debug.Log("no move");
-            }
-        }
-
-        private IEnumerator PlayAINextMove()
-        {
-            yield return new WaitUntil(() => !_isWorking);
-            yield return new WaitForSeconds(waitTime);
-            StartAIMove();
         }
 
         private void OnInputActionChange()
@@ -200,6 +178,7 @@ namespace Controllers
             UpdateMarkedMineCount(tileState);
             UpdateMineCount();
             GameEventSystem.Instance.OnMarkMine?.Invoke(tileState);
+            _isWorking = false;
 
             EndGameCheck();
         }
@@ -268,9 +247,35 @@ namespace Controllers
         
         private void ShowResult(bool hasPassed)
         {
-            _gameOver = false;
+            _gameOver = true;
             _isShowingWarning = false;
             GameEventSystem.Instance.OnShowResult?.Invoke(hasPassed);
+        }
+        
+        private void StartAIMove()
+        {
+            var autoPlayData = _autoPlayController.GetAIMove(gameState);
+            if (autoPlayData != null)
+            {
+                _isWorking = true;
+                _inputController.UpdateInputAction(autoPlayData.inputAction);
+                OnTileClick(autoPlayData.tileState);
+                _autoPlayCoroutine = StartCoroutine(PlayAINextMove());
+            }
+            else
+            {
+                Debug.Log("no move");
+            }
+        }
+
+        private IEnumerator PlayAINextMove()
+        {
+            yield return new WaitUntil(() => !_isWorking);
+            yield return new WaitForSeconds(waitTime);
+            if (!_gameOver)
+            {
+                StartAIMove();
+            }
         }
     }
 }

@@ -15,8 +15,8 @@ namespace State
         public List<TileState> GetTileStates { get; private set; }
         public bool IsMatched => totalMines == totalMinesFlagged;
 
-        public const int MaxRows = 8;
-        public const int MaxColumns = 8;
+        public const int MaxRows = 9;
+        public const int MaxColumns = 9;
         
         public void Initialize(MinesData minesData)
         {

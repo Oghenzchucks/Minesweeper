@@ -1,23 +1,24 @@
 using System.Collections.Generic;
-using System.Linq;
 using Enums;
 using Models;
 using State;
-using UnityEngine;
 using Utils;
+using Random = UnityEngine.Random;
 
 namespace Controllers
 {
     public class AutoPlayController
     {
-        private List<AutoPlayData> _multiMoves = new();
+        public List<AutoPlayData> _multiMoves = new();
+        public HashSet<TileState> _mines = new();
+        public HashSet<TileState> _processedTiles = new();
 
-        private List<TilePosition> _cornerTilePositions = new()
+        private List<TilePosition> _randomCornerTilePositions = new()
         {
             new() { row = 0, column = 0 },
             new() { row = 0, column = GameState.MaxColumns - 1 },
             new() { row = GameState.MaxRows - 1, column = 0 },
-            new() { row = GameState.MaxRows - 1, column = GameState.MaxColumns - 1 }
+            new() { row = GameState.MaxRows - 1, column = GameState.MaxColumns - 1 },
         };
         
         public AutoPlayData GetAIMove(GameState gameState)  
@@ -42,7 +43,7 @@ namespace Controllers
             var openTiles = gameState.GetTileStates.FindAll(x => x.isOpen);
             if (openTiles.Count == 0)
             {
-                GetRandomCorner(gameState);
+                GetRandomCornerTileState(gameState);
             }
             else
             {
@@ -56,27 +57,27 @@ namespace Controllers
 
                 if (_multiMoves.Count == 0)
                 {
-                    GetRandomCorner(gameState);
+                    GetRandomCornerTileState(gameState);
                 }
             }
         }
 
-        private void GetRandomCorner(GameState gameState)
+        private void GetRandomCornerTileState(GameState gameState)
         {
-            if (_cornerTilePositions.Count == 0)
+            if (_randomCornerTilePositions.Count == 0)
             {
                 return;
             }
             
-            var chosenCornerPosition = GetRandomCornerTilePosition();
-            _cornerTilePositions.Remove(chosenCornerPosition);
+            var chosenCornerPosition = GetRandomTilePosition();
+            _randomCornerTilePositions.Remove(chosenCornerPosition);
 
             AddToMultiMove(TilesHelper.GetTileState(gameState, chosenCornerPosition), InputAction.FindMine);
         }
 
-        private TilePosition GetRandomCornerTilePosition()
+        private TilePosition GetRandomTilePosition()
         {
-            return _cornerTilePositions[Random.Range(0, _cornerTilePositions.Count)];
+            return _randomCornerTilePositions[Random.Range(0, _randomCornerTilePositions.Count)];
         }
 
         private void CheckToMarkMine(TileState centerTile, List<TileState> tileStates)
@@ -87,38 +88,25 @@ namespace Controllers
             {
                 foreach (var notOpenTile in notOpenTiles)
                 {
-                    AddToMultiMove(notOpenTile, InputAction.MarkMine);
+                    if (!_mines.Contains(notOpenTile))
+                    {
+                        _mines.Add(notOpenTile);
+                        AddToMultiMove(notOpenTile, InputAction.MarkMine);
+                    }
                 }
             }
+            
         }
 
         private void CheckToFindMine(TileState centerTile, List<TileState> tileStates, GameState gameState)
         {
             tileStates.Remove(centerTile);
             var flaggedTiles = tileStates.FindAll(x => x.isFlagged);
-            var notOpenTiles = tileStates.FindAll(x => !x.isOpen);
+            var notOpenTiles = tileStates.FindAll(x => !x.isOpen && !x.isFlagged);
             var openTiles = tileStates.FindAll(x => x.isOpen);
 
             MinesCountEqualToFlagTilesPatternCheck(centerTile, flaggedTiles, notOpenTiles);
             SameColumnOrRowsPatternCheck(gameState, tileStates, notOpenTiles, centerTile);
-            //CheckNonOpenTilesPattern(openTiles, notOpenTiles, gameState);
-        }
-
-        private void CheckNonOpenTilesPattern(List<TileState> openTiles, List<TileState> centerNotOpenTiles, GameState gameState)
-        {
-            foreach (var tileState in openTiles)
-            {
-                if (tileState.tileType == TileTypes.One)
-                {
-                    var tilesAround = TilesHelper.GetTilesAround(tileState, gameState);
-                    tilesAround.Remove(tileState);
-                    var notOpenTiles = tilesAround.FindAll(x => !x.isOpen);
-                    foreach (var nonIntersectingTile in GetNonIntersectingTiles(centerNotOpenTiles, notOpenTiles))
-                    {
-                        AddToMultiMove(nonIntersectingTile, InputAction.FindMine);
-                    }
-                }
-            }
         }
 
         private void MinesCountEqualToFlagTilesPatternCheck(TileState centerTile, List<TileState> flaggedTiles, List<TileState> notOpenTiles)
@@ -127,7 +115,11 @@ namespace Controllers
             {
                 foreach (var tileState in notOpenTiles)
                 {
-                    AddToMultiMove(tileState, InputAction.FindMine);
+                    if (!_processedTiles.Contains(tileState))
+                    {
+                        _processedTiles.Add(tileState);
+                        AddToMultiMove(tileState, InputAction.FindMine);
+                    }
                 }
             }
         }
@@ -168,31 +160,40 @@ namespace Controllers
                 };
                 
                 var sideTileState = tileStates.Find(x => x.tilePosition.IsEqual(tilePosition));
-                CheckSideTileForMatch(gameState, tileStates, notOpenTiles, centerTile, sideTileState, centerTileDifference, isColumn, i);
+
+                if (sideTileState.tileType == TileTypes.One)
+                {
+                    CheckSideTileForMatch(gameState, tileStates, notOpenTiles, centerTile, sideTileState, centerTileDifference, isColumn, i);
+                }
             }
         }
 
         private void CheckSideTileForMatch(GameState gameState, List<TileState> tileStates, 
             List<TileState> notOpenTiles, TileState centerTile, TileState sideTileState, int centerTileDifference, bool isColumn, int sideIndex)
         {
+            var sideTiles = TilesHelper.GetTilesAround(sideTileState, gameState);
+            sideTiles.Remove(sideTileState);
+            var notOpenSideTiles = sideTiles.FindAll(x => !x.isOpen && !x.isFlagged);
+
             if (sideTileState.tileType == centerTile.tileType)
             {
-                var leftTiles = TilesHelper.GetTilesAround(sideTileState, gameState);
-                leftTiles.Remove(sideTileState);
-                var leftNotOpenTiles = leftTiles.FindAll(x => !x.isOpen);
-                    
-                if (leftNotOpenTiles.Count == 2 
-                    && TilesHelper.DoesTilesShareRowOrColumn(leftNotOpenTiles, isColumn) 
-                    && DoesTilesIntersect(notOpenTiles, leftNotOpenTiles)
-                    && DifferenceBetweenTileCheck(leftNotOpenTiles, !isColumn) == 1)
+                if (notOpenSideTiles.Count == 2 
+                    && TilesHelper.DoesTilesShareRowOrColumn(notOpenSideTiles, isColumn) 
+                    && DoesTilesIntersect(notOpenTiles, notOpenSideTiles)
+                    && DifferenceBetweenTileCheck(notOpenSideTiles, !isColumn) == 1)
                 {
-                    var tileDifference = isColumn ? leftNotOpenTiles[0].tilePosition.column - sideTileState.tilePosition.column 
-                        : leftNotOpenTiles[0].tilePosition.row - sideTileState.tilePosition.row;
+                    var tileDifference = isColumn ? notOpenSideTiles[0].tilePosition.column - sideTileState.tilePosition.column 
+                        : notOpenSideTiles[0].tilePosition.row - sideTileState.tilePosition.row;
                     
                     if (centerTileDifference == tileDifference)
                     {
                         var tilePosition = GetMineTilePosition(centerTile, tileDifference, sideIndex, isColumn);
-                        AddToMultiMove(tileStates.Find(x => x.tilePosition.IsEqual(tilePosition)), InputAction.FindMine);
+                        var newTileState = tileStates.Find(x => x.tilePosition.IsEqual(tilePosition));
+                        if (!_processedTiles.Contains(newTileState))
+                        {
+                            _processedTiles.Add(newTileState);
+                            AddToMultiMove(newTileState, InputAction.FindMine);
+                        }
                     }
                 }
             }
@@ -265,9 +266,16 @@ namespace Controllers
             var nonIntersectingTiles = new List<TileState>();
             foreach (var tileState in aroundNotOpenTiles)
             {
-                int intersectCount = centerNotOpenTiles.Count(tileState2 => tileState.tilePosition.IsEqual(tileState2.tilePosition));
-
-                if (intersectCount == 0)
+                var count = 0;
+                foreach (var centerTileState in centerNotOpenTiles)
+                {
+                    if (centerTileState.tilePosition.IsEqual(tileState.tilePosition))
+                    {
+                        count++;
+                    }
+                }
+                
+                if (count == 0)
                 {
                     nonIntersectingTiles.Add(tileState);
                 }
